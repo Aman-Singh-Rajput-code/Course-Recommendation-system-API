@@ -5,12 +5,6 @@ import google.generativeai as genai
 import json
 from dotenv import load_dotenv
 
-# Add this near your other imports
-try:
-    from werkzeug.urls import url_quote
-except ImportError:
-    from urllib.parse import quote as url_quote
-
     
 # Load environment variables from .env file
 load_dotenv()
@@ -211,6 +205,6 @@ def recommendations():
         return jsonify({"error": f"Server error: {str(e)}"})
 
 if __name__ == '__main__':
-    # Get configuration from environment variables
+    PORT = int(os.getenv("PORT", 5000))
     debug_mode = os.environ.get("FLASK_DEBUG", "False").lower() == "true"
-    app.run(debug=debug_mode)
+    app.run(debug=debug_mode, host="0.0.0.0",port=PORT)
