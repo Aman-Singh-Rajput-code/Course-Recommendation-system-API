@@ -5,6 +5,13 @@ import google.generativeai as genai
 import json
 from dotenv import load_dotenv
 
+# Add this near your other imports
+try:
+    from werkzeug.urls import url_quote
+except ImportError:
+    from urllib.parse import quote as url_quote
+
+    
 # Load environment variables from .env file
 load_dotenv()
 
