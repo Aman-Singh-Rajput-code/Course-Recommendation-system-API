@@ -1,15 +1,17 @@
-# app.py
 from flask import Flask, render_template, request, jsonify
 import os
 import google.generativeai as genai
 import json
 from dotenv import load_dotenv
+from flask_cors import CORS
 
-    
 # Load environment variables from .env file
 load_dotenv()
 
 app = Flask(__name__)
+
+# Enable CORS for all routes (or set specific origins if needed)
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 # Initialize Gemini Pro 1.5
 def initialize_gemini():
@@ -29,43 +31,41 @@ def get_course_recommendations(subject, budget, skill_level, time_availability, 
         
         prompt = f"""
         Act as a course recommendation system. Provide course recommendations based on the following parameters:
-- Subject: {subject}
-- Budget: {budget}
-- Skill Level: {skill_level}
-- Time Availability: {time_availability}
-- Learning Style: {learning_style}
+        - Subject: {subject}
+        - Budget: {budget}
+        - Skill Level: {skill_level}
+        - Time Availability: {time_availability}
+        - Learning Style: {learning_style}
 
-### **Instructions for Course URLs:**
-- Only recommend courses from real platforms like **Coursera,YouTube,GeeksForGeeks, Udemy, edX, LinkedIn Learning, Pluralsight, or Khan Academy**.
-- **DO NOT generate fake URLs.** Only provide real, verifiable course links.
-- If you are unsure about a course URL, mention **"URL not found"** instead of a fake link.
+        ### **Instructions for Course URLs:**
+        - Only recommend courses from real platforms like **Coursera, YouTube, GeeksForGeeks, Udemy, edX, LinkedIn Learning, Pluralsight, or Khan Academy**.
+        - **DO NOT generate fake URLs.** Only provide real, verifiable course links.
+        - If you are unsure about a course URL, mention **"URL not found"** instead of a fake link.
 
-Return your response in the following JSON format:
-{{
-    "recommendations": [
+        Return your response in the following JSON format:
         {{
-            "course_name": "Course name",
-            "platform": "Platform name",
-            "cost": "Cost in USD",
-            "duration": "Estimated completion time",
-            "description": "Brief description",
-            "url": "Real course link or 'URL not found'",
-            "skill_level": "Beginner/Intermediate/Advanced"
+            "recommendations": [
+                {{
+                    "course_name": "Course name",
+                    "platform": "Platform name",
+                    "cost": "Cost in USD",
+                    "duration": "Estimated completion time",
+                    "description": "Brief description",
+                    "url": "Real course link or 'URL not found'",
+                    "skill_level": "Beginner/Intermediate/Advanced"
+                }}
+            ],
+            "roadmap": [
+                {{
+                    "stage": "Stage 1: Fundamentals",
+                    "description": "Description of this stage",
+                    "estimated_time": "Time to complete this stage",
+                    "key_skills": ["skill1", "skill2", "skill3"],
+                    "resources": ["resource1", "resource2"]
+                }}
+            ],
+            "additional_tips": "Additional learning tips"
         }}
-    ],
-    "roadmap": [
-        {{
-            "stage": "Stage 1: Fundamentals",
-            "description": "Description of this stage",
-            "estimated_time": "Time to complete this stage",
-            "key_skills": ["skill1", "skill2", "skill3"],
-            "resources": ["resource1", "resource2"]
-        }}
-    ],
-    "additional_tips": "Additional learning tips"
-}}
-
-Provide 3-5 course recommendations and a 3-5 stage roadmap.
         """
         
         print("Sending prompt to Gemini:", prompt)
@@ -160,25 +160,6 @@ def get_fallback_data(subject, skill_level):
         "additional_tips": f"Consider joining online communities related to {subject} to network with other learners and professionals. Consistent practice is key to mastering this field."
     }
 
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-'''@app.route('/get_recommendations', methods=['POST'])
-def recommendations():
-    data = request.json
-    subject = data.get('subject', '')
-    budget = data.get('budget', '')
-    skill_level = data.get('skillLevel', '')
-    time_availability = data.get('timeAvailability', '')
-    learning_style = data.get('learningStyle', '')
-    
-    if not subject:
-        return jsonify({"error": "Subject is required"})
-    
-    result = get_course_recommendations(subject, budget, skill_level, time_availability, learning_style)
-    return jsonify(result)'''
-
 @app.route('/get_recommendations', methods=['POST'])
 def recommendations():
     try:
@@ -192,7 +173,7 @@ def recommendations():
         learning_style = data.get('learningStyle', '')
         
         if not subject:
-            return jsonify({"error": "Subject is required"})
+            return jsonify({"error": "Subject is required"}), 400
         
         print(f"Calling Gemini API with params: {subject}, {budget}, {skill_level}, {time_availability}, {learning_style}")
         result = get_course_recommendations(subject, budget, skill_level, time_availability, learning_style)
@@ -202,9 +183,9 @@ def recommendations():
         print(f"Error in recommendations route: {str(e)}")
         import traceback
         traceback.print_exc()
-        return jsonify({"error": f"Server error: {str(e)}"})
+        return jsonify({"error": f"Server error: {str(e)}"}), 500
 
 if __name__ == '__main__':
     PORT = int(os.getenv("PORT", 5000))
     debug_mode = os.environ.get("FLASK_DEBUG", "False").lower() == "true"
-    app.run(debug=debug_mode, host="0.0.0.0",port=PORT)
+    app.run(debug=debug_mode, host="0.0.0.0", port=PORT)
